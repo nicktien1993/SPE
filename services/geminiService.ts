@@ -3,11 +3,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationParams } from "../types.ts";
 
 export const generateIEPGoals = async (params: GenerationParams): Promise<any[]> => {
-  // 優先從環境變數取得 API KEY (Vercel 後台可設定)
-  const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : '';
+  // 嚴格遵循規範從 process.env 獲取 API KEY
+  const apiKey = process.env.API_KEY || '';
   
   if (!apiKey) {
-    throw new Error("API Key 缺失。請在環境變數中設定 API_KEY。");
+    throw new Error("環境變數 API_KEY 尚未設定，請在 Vercel 設定中檢查。");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -19,7 +19,8 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
 單元名稱：${params.unit}
 學生起點行為/程度：${params.studentLevel}
 
-請產出一個 JSON 陣列，每個物件代表一個學年目標 (title)，其下包含細部指標陣列 (subGoals)，每個指標需有編號 (code)、具體內容與評量標準 (content) 以及建議的學習策略 (strategy)。`;
+請產出一個 JSON 陣列，每個物件代表一個學年目標 (title)，其下包含細部指標陣列 (subGoals)。
+每個指標需包含：編號 (code)、具體內容與評量標準 (content)、學習策略 (strategy)。`;
 
   try {
     const response = await ai.models.generateContent({
@@ -55,6 +56,6 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
     return JSON.parse(response.text || "[]");
   } catch (error) {
     console.error("Gemini API Error:", error);
-    throw new Error("AI 生成失敗，請確認網路或 API Key 設定。");
+    throw new Error("AI 生成失敗，請確認 Vercel 中的 API_KEY 是否正確。");
   }
 };
