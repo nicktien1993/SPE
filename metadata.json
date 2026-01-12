@@ -1,0 +1,5 @@
+{
+  "name": "IEP 目標管理與紀錄助手",
+  "description": "專為特教老師設計的教學目標生成與進度追蹤工具，整合 Gemini AI 自動產出符合特教領綱的細部指標，並提供直覺的正確率追蹤與報表導出功能。",
+  "requestFramePermissions": []
+}
