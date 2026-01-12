@@ -3,11 +3,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationParams } from "../types";
 
 export const generateIEPGoals = async (params: GenerationParams): Promise<any[]> => {
-  // 嚴格遵循規範從 process.env 獲取 API KEY
-  const apiKey = process.env.API_KEY || '';
+  // 從環境變數獲取 API KEY
+  const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    throw new Error("環境變數 API_KEY 尚未設定，請在 Vercel 設定中檢查。");
+    throw new Error("找不到 API_KEY。請確保環境變數已正確設定。");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -53,9 +53,11 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
       },
     });
 
-    return JSON.parse(response.text || "[]");
-  } catch (error) {
+    const text = response.text;
+    if (!text) throw new Error("AI 回傳內容為空");
+    return JSON.parse(text);
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    throw new Error("AI 生成失敗，請確認 Vercel 中的 API_KEY 是否正確。");
+    throw new Error(error.message || "AI 生成失敗，請檢查網路連線或 API Key。");
   }
 };
