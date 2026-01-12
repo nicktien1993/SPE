@@ -3,45 +3,32 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationParams } from "../types";
 
 export const generateIEPGoals = async (params: GenerationParams): Promise<any[]> => {
+  // Use process.env.API_KEY directly as per guidelines.
+  // A new instance is created right before making the API call to ensure it uses the most up-to-date key.
   const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    throw new Error("環境變數中缺少 API_KEY。");
+    throw new Error("系統設定尚未完成，請聯絡管理員。");
   }
 
   const ai = new GoogleGenAI({ apiKey });
   
   const systemInstruction = `你是一位精通「台灣特教適性教學」的資深專家。
-你的任務是為「${params.gradeLevel}」的「${params.disabilityType}」學生產出細步化目標。
+你的任務是為「${params.gradeLevel}」的「${params.disabilityType}」學生產出細步化、可量化的 IEP 目標。
 
 【適性調整核心規則】：
-1. 【量化目標】：針對「${params.unit}」，每個學年目標下產出 5 個學期目標。
-2. 【智慧標準設定】：不要全部設定為 80%！請根據任務性質判斷：
-   - 安全/關鍵技能（如：過馬路、識別危險）：目標值應設為 100%。
-   - 初階嘗試技能（如：嘗試仿說）：目標值可設為 60%。
-   - 穩定發展技能（如：計算、認字）：目標值可設為 80%。
-3. 【通過條件描述】：內容應包含明確的通過條件（例如：在口頭提示下、連續兩週、正確率達 X%）。
-4. 【針對性策略】：根據學生的特質提供「輔助減退」或「環境調整」策略。
-5. 【嚴格 JSON】：請務必依照指定的 JSON 格式回傳。`;
+1. 【結構化內容】：針對「${params.unit}」，產出 1 個學年目標及對應的 5 個學期細步目標。
+2. 【智慧標準判定】：
+   - 涉及安全之技能（如：辨識危險）：標準 100%。
+   - 初階動作或認知（如：仿說）：標準 60%。
+   - 穩定發展之技能（如：認讀數字）：標準 80%。
+3. 【精準描述】：目標內容必須包含具體行為、條件與通過標準。
+4. 【教學策略】：提供 1-2 句實用的特教教學提示（輔助減退或環境調整）。
+5. 【格式】：嚴格遵守 JSON 格式。`;
 
-  const prompt = `單元：${params.unit}
-起點能力：${params.studentLevel}
-請產出至少一個學年目標，內含 5 個細部學期目標。
-
-請回傳以下格式的 JSON，其中 targetAccuracy 請填入你認為適合該學生的百分比數字(0-100)：
-[
-  {
-    "title": "學年目標名稱",
-    "subGoals": [
-      { 
-        "code": "1-1", 
-        "content": "具體行為目標(含標準)", 
-        "strategy": "教學策略", 
-        "targetAccuracy": 80 
-      }
-    ]
-  }
-]`;
+  const prompt = `單元名稱：${params.unit}
+學生起點能力：${params.studentLevel}
+請產出適性化的特教目標，targetAccuracy 需為 0-100 的數字。`;
 
   try {
     const response = await ai.models.generateContent({
@@ -76,11 +63,26 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
       },
     });
 
-    const jsonStr = response.text;
-    if (!jsonStr) throw new Error("AI 未回傳內容");
+    // Access .text property directly (not a method) as per guidelines.
+    const jsonStr = response.text?.trim();
+    if (!jsonStr) throw new Error("AI 生成內容為空");
     return JSON.parse(jsonStr);
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    throw new Error("AI 生成失敗，請稍後再試。");
+    const errorMessage = error.message || "";
+    
+    if (errorMessage.includes("429")) {
+      throw new Error("目前使用人數較多，系統額度暫時用完，請稍後幾分鐘再試。");
+    }
+    
+    // Handle "Requested entity was not found" by prompting for key selection
+    if (errorMessage.includes("Requested entity was not found")) {
+      if (typeof window !== 'undefined' && (window as any).aistudio) {
+        await (window as any).aistudio.openSelectKey();
+      }
+      throw new Error("API 金鑰失效或專案未啟動，已重新開啟設定視窗，請重新選擇金鑰。");
+    }
+    
+    throw new Error("系統生成時發生一點小問題，請再試一次。");
   }
 };
