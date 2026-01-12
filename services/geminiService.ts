@@ -2,10 +2,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationParams } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// 安全地取得 API Key，避免在 process 未定義的環境崩潰
+const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : '';
+const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
 export const generateIEPGoals = async (params: GenerationParams): Promise<any[]> => {
-  const prompt = `你是一位資深的特教老師。請根據以下資訊，產出符合「台灣特教領綱」與「特殊教育課程實施規範」的教學目標。
+  const prompt = `你是一位資長的特教老師。請根據以下資訊，產出符合「台灣特教領綱」與「特殊教育課程實施規範」的教學目標。
 領域/學科：${params.subject}
 障礙類別：${params.disabilityType}
 年級：${params.gradeLevel}
@@ -16,9 +18,8 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
 1. 結構必須包含「大目標 (title)」與其下的「細部指標陣列 (subGoals)」。
 2. 針對該單元內容，請務必提供 3 到 5 個細部指標 (subGoals)，以便老師從中挑選最適合學生的項目。
 3. 每個細部指標請提供具體的「學習策略 (strategy)」，需考慮學生的【障礙類別】。例如對自閉症學生多用視覺提示，對學習障礙學生多用多感官教學。
-4. 目標內容必須包含具體的評量標準，如「正確率達 80%」、「連續三次正確執行」、「能獨立完成」等。
-5. 若領域為「社會技巧」或「生活管理」，指標應偏向功能性目標。
-6. 請務必嚴格遵守 JSON 格式返回陣列。`;
+4. 目標內容必須包含具體的評量標準，如「正確率達 80%」等。
+5. 產出請務必嚴格遵守 JSON 格式。`;
 
   try {
     const response = await ai.models.generateContent({
@@ -31,15 +32,15 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
           items: {
             type: Type.OBJECT,
             properties: {
-              title: { type: Type.STRING, description: "大目標名稱" },
+              title: { type: Type.STRING },
               subGoals: {
                 type: Type.ARRAY,
                 items: {
                   type: Type.OBJECT,
                   properties: {
-                    code: { type: Type.STRING, description: "目標編號如 1-1" },
-                    content: { type: Type.STRING, description: "具體指標內容" },
-                    strategy: { type: Type.STRING, description: "針對此指標的具體學習策略或教學調整建議" }
+                    code: { type: Type.STRING },
+                    content: { type: Type.STRING },
+                    strategy: { type: Type.STRING }
                   },
                   required: ["code", "content", "strategy"]
                 }
@@ -58,6 +59,6 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     console.error("Gemini API Error:", error);
-    throw new Error("AI 生成過程發生錯誤，可能是網路連線不穩或格式異常，請再試一次。");
+    throw new Error("AI 生成失敗，請檢查網路或 API Key 設定。");
   }
 };
