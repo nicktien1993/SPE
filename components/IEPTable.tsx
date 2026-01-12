@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { IEPParentGoal, Subject } from '../types';
 
@@ -13,73 +12,113 @@ interface IEPTableProps {
 const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGoal, onDeleteParent, onAddManualParent }) => {
   const totalSubGoals = parentGoals.reduce((sum, p) => sum + p.subGoals.length, 0);
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    const feedback = document.createElement('div');
+    feedback.innerText = '已複製內容';
+    feedback.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-black z-[9999] shadow-2xl animate-bounce';
+    document.body.appendChild(feedback);
+    setTimeout(() => document.body.removeChild(feedback), 1200);
+  };
+
   return (
-    <div className="bg-white shadow-2xl border-b-4 border-black overflow-x-auto">
-      <table className="min-w-full border-collapse border-2 border-black">
-        <thead className="bg-white text-black">
+    <div className="bg-white shadow-2xl shadow-slate-200/50 border border-slate-900 rounded-none overflow-hidden mb-20">
+      <table className="min-w-full border-collapse table-fixed border-2 border-black">
+        <thead className="bg-white text-black text-base font-black uppercase">
+          {/* Row 1 */}
           <tr className="border-b-2 border-black">
-            <th rowSpan={4} className="border-r-2 border-black px-2 py-4 text-center w-20 font-bold">領域</th>
-            <th rowSpan={4} className="border-r-2 border-black px-2 py-4 text-center w-36 font-bold">學年目標</th>
-            <th colSpan={4} className="px-4 py-2 text-center font-bold">學期教育目標</th>
+            <th rowSpan={4} className="border-r-2 border-black px-2 py-4 text-center w-16">領域</th>
+            <th rowSpan={4} className="border-r-2 border-black px-2 py-4 text-center w-48">學年目標</th>
+            <th colSpan={4} className="px-4 py-3 text-center border-b-2 border-black">學期教育目標</th>
           </tr>
+          {/* Row 2 */}
           <tr className="border-b-2 border-black">
-            <th rowSpan={3} className="border-r-2 border-black px-4 py-4 text-center font-bold min-w-[300px]">目標內容</th>
-            <th colSpan={3} className="px-4 py-2 text-center font-bold">評量結果</th>
+            {/* 修正：rowSpan 改為 3，這樣就不會有空白列 */}
+            <th rowSpan={3} className="border-r-2 border-black px-6 py-4 text-center min-w-[400px]">目標內容</th>
+            <th colSpan={3} className="px-4 py-2 text-center border-b-2 border-black">評量結果</th>
           </tr>
-          <tr className="border-b-2 border-black">
-            <th colSpan={2} className="border-r-2 border-black px-4 py-2 text-center font-bold">形成性評量</th>
-            <th rowSpan={2} className="px-2 py-2 text-center w-24 font-bold">通過</th>
+          {/* Row 3 */}
+          <tr className="border-b-2 border-black text-center">
+            <th colSpan={2} className="border-r-2 border-black px-4 py-2">形成性評量</th>
+            <th rowSpan={2} className="px-2 py-2 w-20">通過</th>
           </tr>
+          {/* Row 4 */}
           <tr className="border-b-2 border-black">
-            <th className="border-r-2 border-black px-2 py-1 text-center font-medium text-red-500 text-xs">結果/日期</th>
-            <th className="border-r-2 border-black px-2 py-1 text-center font-medium text-red-500 text-xs">結果/日期</th>
+            {/* 目標內容與通過已在上方 rowSpan，這裡只需處理結果日期 */}
+            <th className="border-r-2 border-black px-2 py-1 text-center font-bold text-red-500 text-[10px]">結果/日期</th>
+            <th className="border-r-2 border-black px-2 py-1 text-center font-bold text-red-500 text-[10px]">結果/日期</th>
           </tr>
         </thead>
         <tbody>
-          {parentGoals.map((parent, pIdx) => (
+          {parentGoals.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="py-32 text-center text-slate-500 font-bold italic">
+                尚未生成內容，請填寫上方資訊。
+              </td>
+            </tr>
+          ) : parentGoals.map((parent, pIdx) => (
             <React.Fragment key={parent.id}>
               {parent.subGoals.map((sub, sIdx) => (
-                <tr key={sub.id} className="border-b-2 border-black hover:bg-slate-50">
+                <tr key={sub.id} className="border-b-2 border-black group hover:bg-slate-50/50 transition-all">
                   {pIdx === 0 && sIdx === 0 && (
-                    <td rowSpan={totalSubGoals} className="border-r-2 border-black px-4 py-6 text-center font-black text-2xl align-middle w-20">
+                    <td rowSpan={totalSubGoals} className="border-r-2 border-black px-2 py-6 text-center font-black text-xl align-middle w-16 text-black">
                       <div className="vertical-text">{subject}</div>
                     </td>
                   )}
                   {sIdx === 0 && (
-                    <td rowSpan={parent.subGoals.length} className="border-r-2 border-black px-4 py-6 text-center align-middle group w-36">
+                    <td rowSpan={parent.subGoals.length} className="border-r-2 border-black px-4 py-6 align-top w-48 relative">
                       <textarea
-                        className="w-full border-none focus:ring-0 text-center resize-none bg-transparent font-bold"
+                        className="w-full border-none focus:ring-0 text-sm font-black resize-none bg-transparent leading-relaxed text-black"
                         value={parent.title}
-                        rows={4}
+                        rows={6}
                         onChange={(e) => onUpdateSubGoal(parent.id, '', 'parentTitle', e.target.value)}
                       />
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-print">
+                         <button onClick={() => copyToClipboard(parent.title)} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-lg text-slate-600 hover:text-indigo-600 transition-all">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                         </button>
+                      </div>
                     </td>
                   )}
-                  <td className="border-r-2 border-black px-4 py-4">
-                    <div className="flex flex-col gap-1">
-                      <input className="font-bold text-indigo-700 border-none p-0 focus:ring-0 bg-transparent w-full" value={sub.code} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'code', e.target.value)} />
-                      <textarea className="w-full border-none focus:ring-0 text-lg p-0 resize-none bg-transparent" value={sub.content} rows={2} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'content', e.target.value)} />
-                      {sub.strategy !== undefined && (
-                        <div className="mt-2 p-2 bg-blue-50 border-l-4 border-blue-400 rounded">
-                          <textarea className="w-full border-none focus:ring-0 text-xs italic text-blue-800 p-0 bg-transparent resize-none" value={sub.strategy} rows={2} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'strategy', e.target.value)} />
+                  <td className="border-r-2 border-black px-6 py-6 relative">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                         <div className="text-blue-900 font-black text-base">
+                            <input className="border-none p-0 focus:ring-0 bg-transparent w-12" value={sub.code} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'code', e.target.value)} />
+                         </div>
+                         <button onClick={() => copyToClipboard(sub.content)} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-indigo-600 no-print">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                         </button>
+                      </div>
+                      <textarea className="w-full border-none focus:ring-0 text-sm p-0 resize-none bg-transparent leading-relaxed font-bold text-slate-900" value={sub.content} rows={3} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'content', e.target.value)} />
+                      {sub.strategy && (
+                        <div className="mt-1 p-2 bg-blue-50/50 rounded-sm text-[11px] text-blue-900 italic border-l-4 border-blue-400 flex justify-between items-start">
+                          <textarea className="w-full border-none focus:ring-0 p-0 bg-transparent resize-none leading-relaxed font-medium" value={sub.strategy} rows={2} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'strategy', e.target.value)} />
                         </div>
                       )}
                     </div>
                   </td>
                   {[0, 1].map((idx) => (
-                    <td key={idx} className="border-r-2 border-black px-1 py-2 text-center w-28">
-                      <input className="w-full text-center border-none focus:ring-0 text-xs bg-transparent" value={sub.records[idx]?.date || ''} placeholder="M/D" onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'date', e.target.value, idx)} />
-                      <div className="flex items-baseline justify-center">
-                        <input className="w-12 text-center font-bold text-2xl focus:ring-0 border-none bg-transparent p-0" value={sub.records[idx]?.accuracy || ''} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'accuracy', e.target.value, idx)} />
-                        <span className="text-xs text-gray-400">%</span>
+                    <td key={idx} className="border-r-2 border-black px-1 py-4 text-center w-24">
+                      <div className="flex flex-col items-center gap-1">
+                        <input className="w-full text-center border-none focus:ring-0 text-[10px] text-slate-600 bg-transparent font-bold" value={sub.records[idx]?.date || ''} placeholder="M/D" onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'date', e.target.value, idx)} />
+                        <div className="flex items-end justify-center">
+                          <input className="w-8 text-center font-bold text-lg focus:ring-0 border-none bg-transparent p-0 text-black" value={sub.records[idx]?.accuracy || ''} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'accuracy', e.target.value, idx)} />
+                          <span className="text-[10px] text-slate-500 font-bold mb-1 ml-0.5">%</span>
+                        </div>
                       </div>
                     </td>
                   ))}
-                  <td className="px-2 py-4 text-center align-middle w-24">
+                  <td className="px-2 py-4 text-center align-middle w-20">
                     {(() => {
-                      const lastAcc = sub.records.filter(r => r.accuracy !== "" && r.accuracy !== "-").pop()?.accuracy;
-                      const isPass = lastAcc && parseInt(lastAcc as string) >= 80;
-                      return <span className={`font-black text-xl ${isPass ? 'text-black' : 'text-red-600'}`}>{lastAcc ? (isPass ? '通過' : '不通過') : '-'}</span>;
+                      const lastAcc = sub.records.filter(r => r.accuracy !== "").pop()?.accuracy;
+                      const val = parseInt(lastAcc as string);
+                      const isPass = !isNaN(val) && val >= 80;
+                      return (
+                        <div className="text-red-600 font-black text-xl">
+                          {lastAcc ? (isPass ? 'OK' : 'X') : '-'}
+                        </div>
+                      );
                     })()}
                   </td>
                 </tr>
@@ -88,8 +127,10 @@ const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGo
           ))}
         </tbody>
       </table>
-      <div className="bg-slate-900 p-4 no-print flex justify-center">
-        <button onClick={onAddManualParent} className="text-white font-bold hover:text-blue-300">+ 新增目標</button>
+      <div className="bg-slate-50/50 p-4 no-print flex justify-center border-t-2 border-black">
+        <button onClick={onAddManualParent} className="text-xs font-black text-slate-900 hover:text-indigo-600 transition-colors">
+          [ + ] 新增一行手動編輯目標
+        </button>
       </div>
     </div>
   );

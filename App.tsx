@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Subject, IEPParentGoal } from './types';
 import { generateIEPGoals } from './services/geminiService';
 import IEPTable from './components/IEPTable';
@@ -14,18 +13,28 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const grades = [
-    '小一', '小二', '小三', '小四', '小五', '小六', 
-    '國一', '國二', '國三', 
-    '高一', '高二', '高三'
-  ];
-  
-  const disabilities = [
-    '智能障礙', '視覺障礙', '聽覺障礙', '語言障礙', '肢體障礙', 
-    '腦性麻痺', '身體病弱', '情緒行為障礙', '學習障礙', '自閉症', 
-    '多重障礙', '發展遲緩', '其他障礙'
-  ];
-  
+  useEffect(() => {
+    const saved = localStorage.getItem('iep_cache_v1');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setParentGoals(parsed.parentGoals || []);
+        setSubject(parsed.subject || Subject.CHINESE);
+        setGrade(parsed.grade || '小一');
+        setDisability(parsed.disability || '智能障礙');
+      } catch (e) {
+        console.error("Failed to load cache");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const dataToSave = { parentGoals, subject, grade, disability };
+    localStorage.setItem('iep_cache_v1', JSON.stringify(dataToSave));
+  }, [parentGoals, subject, grade, disability]);
+
+  const grades = ['小一', '小二', '小三', '小四', '小五', '小六', '國一', '國二', '國三', '高一', '高二', '高三'];
+  const disabilities = ['智能障礙', '視覺障礙', '聽覺障礙', '語言障礙', '肢體障礙', '腦性麻痺', '身體病弱', '情緒行為障礙', '學習障礙', '自閉症', '多重障礙', '發展緩慢', '其他障礙'];
   const subjects = [
     { label: '國語', value: Subject.CHINESE },
     { label: '數學', value: Subject.MATH },
@@ -35,38 +44,41 @@ const App: React.FC = () => {
   ];
 
   const handleGenerate = async () => {
-    const trimmedUnit = unit.trim();
-    const trimmedLevel = level.trim();
-    if (!trimmedUnit || !trimmedLevel) {
+    if (!unit.trim() || !level.trim()) {
       setError('請填寫單元名稱與學生程度。');
       return;
     }
     setIsGenerating(true);
     setError(null);
     try {
-      const results = await generateIEPGoals({ 
-        subject, 
-        unit: trimmedUnit, 
-        studentLevel: trimmedLevel,
-        gradeLevel: grade,
-        disabilityType: disability
-      });
+      const results = await generateIEPGoals({ subject, unit, studentLevel: level, gradeLevel: grade, disabilityType: disability });
+      
       const newParentGoals: IEPParentGoal[] = results.map((item: any) => ({
         id: Math.random().toString(36).substr(2, 9),
-        title: item.title,
-        subGoals: (Array.isArray(item.subGoals) ? item.subGoals : []).map((sub: any) => ({
+        title: item.title, 
+        subGoals: (item.subGoals || []).map((sub: any) => ({
           id: Math.random().toString(36).substr(2, 9),
           code: sub.code || '1-1',
-          content: sub.content || '未命名指標',
+          content: sub.content || '',
           strategy: sub.strategy || '',
           records: [{ date: '', accuracy: '' }, { date: '', accuracy: '' }]
         }))
       }));
+      
       setParentGoals(prev => [...prev, ...newParentGoals]);
     } catch (err: any) {
-      setError(err.message || '生成失敗。');
+      setError(err.message);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleClear = () => {
+    if (window.confirm('確定要清空目前所有內容嗎？')) {
+      setParentGoals([]);
+      setUnit('');
+      setLevel('');
+      localStorage.removeItem('iep_cache_v1');
     }
   };
 
@@ -90,214 +102,132 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  const generateTableHTML = () => {
-    const totalSubGoals = parentGoals.reduce((sum, p) => sum + p.subGoals.length, 0);
-    let rowsHTML = "";
-    
-    parentGoals.forEach((parent, pIdx) => {
-      parent.subGoals.forEach((sub, sIdx) => {
-        const lastAcc = sub.records.filter(r => r.accuracy !== "").pop()?.accuracy;
-        const isPass = lastAcc && parseInt(lastAcc as string) >= 80;
-        const statusText = lastAcc ? (isPass ? "通過" : "不通過") : "-";
-        const statusColor = isPass ? "#000000" : "#dc2626";
-        const strategyHTML = sub.strategy ? `<br/><i style="font-size: 11px; color: #475569;">策略：${sub.strategy}</i>` : "";
-
-        rowsHTML += `
-          <tr>
-            ${pIdx === 0 && sIdx === 0 ? `<td rowspan="${totalSubGoals}" style="border: 2px solid black; text-align: center; writing-mode: vertical-rl; padding: 10px; font-weight: bold;">${subject}</td>` : ""}
-            ${sIdx === 0 ? `<td rowspan="${parent.subGoals.length}" style="border: 2px solid black; text-align: center; padding: 10px; font-weight: bold;">${parent.title}</td>` : ""}
-            <td style="border: 2px solid black; padding: 10px;"><b>${sub.code}</b><br/>${sub.content}${strategyHTML}</td>
-            <td style="border: 2px solid black; text-align: center; padding: 5px;">${sub.records[0].date}<br/>${sub.records[0].accuracy}%</td>
-            <td style="border: 2px solid black; text-align: center; padding: 5px;">${sub.records[1].date}<br/>${sub.records[1].accuracy}%</td>
-            <td style="border: 2px solid black; text-align: center; padding: 10px; font-weight: bold; color: ${statusColor};">${statusText}</td>
-          </tr>
-        `;
-      });
-    });
-
-    return `
-      <table style="border-collapse: collapse; width: 100%; font-family: 'Noto Sans TC', sans-serif; border: 2px solid black;">
-        <thead>
-          <tr>
-            <th rowspan="4" style="border: 2px solid black; padding: 10px; text-align: center;">領域/科<br/>目</th>
-            <th rowspan="4" style="border: 2px solid black; padding: 10px; text-align: center;">學年<br/>教育目標</th>
-            <th colspan="4" style="border: 2px solid black; padding: 10px; text-align: center;">學期教育目標</th>
-          </tr>
-          <tr>
-            <th rowspan="3" style="border: 2px solid black; padding: 10px; text-align: center;">目標<br/><small>(內容、評量方式、日期、標準)</small></th>
-            <th colspan="3" style="border: 2px solid black; padding: 10px; text-align: center;">評量結果</th>
-          </tr>
-          <tr>
-            <th colspan="2" style="border: 2px solid black; padding: 5px; text-align: center;">形成性評量</th>
-            <th rowspan="2" style="border: 2px solid black; padding: 10px; text-align: center;">通過<br/>與否</th>
-          </tr>
-          <tr>
-            <th style="border: 2px solid black; padding: 5px; text-align: center; color: red; font-size: 11px;">結果/日期</th>
-            <th style="border: 2px solid black; padding: 5px; text-align: center; color: red; font-size: 11px;">結果/日期</th>
-          </tr>
-        </thead>
-        <tbody>${rowsHTML}</tbody>
-      </table>
-    `;
-  };
-
-  const handleCopyForGoogleDocs = async () => {
-    if (parentGoals.length === 0) return;
-    const html = generateTableHTML();
-    try {
-      const blob = new Blob([html], { type: 'text/html' });
-      const data = [new ClipboardItem({ 'text/html': blob })];
-      await navigator.clipboard.write(data);
-      alert('【報表格式已複製】\n請至 Google 文件按 Ctrl+V 貼上，標頭結構將完美呈現。');
-    } catch (err) {
-      alert('複製失敗，請手動選擇表格內容進行複製。');
-    }
-  };
-
-  const handleDownloadCSV = () => {
-    if (parentGoals.length === 0) return;
-    let csvContent = "\ufeff領域,學年目標,細部編號,細部指標內容,學習策略,評量1日期,評量1正確率,評量2日期,評量2正確率,是否通過\n";
-    parentGoals.forEach(p => p.subGoals.forEach(s => {
-      const lastAcc = s.records.filter(r => r.accuracy !== "").pop()?.accuracy;
-      const status = lastAcc && parseInt(lastAcc as string) >= 80 ? "通過" : (lastAcc ? "未通過" : "-");
-      csvContent += [subject, `"${p.title}"`, `"${s.code}"`, `"${s.content}"`, `"${s.strategy}"`, s.records[0].date, s.records[0].accuracy, s.records[1].date, s.records[1].accuracy, status].join(",") + "\n";
-    }));
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `IEP_${subject}_${new Date().toLocaleDateString()}.csv`;
-    link.click();
-  };
-
   return (
-    <div className="min-h-screen pb-16 bg-slate-50">
-      <header className="bg-slate-900 text-white py-8 px-4 shadow-2xl mb-10 no-print border-b-4 border-blue-500 text-center lg:text-left">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-5">
-             <div className="bg-blue-600 p-3 rounded-2xl shadow-xl transform rotate-3">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
+    <div className="min-h-screen pb-20 bg-slate-50">
+      <header className="bg-white border-b border-slate-200 py-4 px-6 no-print sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+             <div className="bg-indigo-600 p-2 rounded-lg shadow-indigo-200 shadow-lg">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
              </div>
-             <div>
-                <h1 className="text-3xl font-black tracking-tight">IEP 目標管理助手 <span className="text-blue-400 text-xl font-medium ml-2">v4.7</span></h1>
-                <p className="text-slate-400 text-base font-medium mt-1">專為特教教學設計的 AI 工具</p>
-             </div>
+             <h1 className="text-xl font-black text-slate-900 tracking-tight">IEP 目標管理助手</h1>
           </div>
+          <button onClick={handleClear} className="text-xs font-black text-red-500 hover:text-red-700 transition-colors uppercase tracking-widest">
+            清空工作區
+          </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4">
-        {/* Input Card */}
-        <section className="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 mb-12 no-print">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-4 space-y-6">
-              <div>
-                <label className="block text-sm font-black text-slate-800 mb-3 uppercase tracking-widest flex items-center gap-2">
-                  <span className="bg-blue-600 w-2 h-2 rounded-full"></span> 選擇領域
-                </label>
+      <main className="max-w-7xl mx-auto px-6 mt-10">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 font-bold rounded-r-lg shadow-sm">
+            {error}
+          </div>
+        )}
+        
+        <section className="bg-white p-1 rounded-2xl border border-slate-200 mb-10 no-print shadow-xl shadow-slate-200/50 overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-slate-100">
+            {/* Column 1: Selection */}
+            <div className="p-8 flex flex-col justify-between space-y-8">
+              <div className="space-y-4">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">01. 領域與科目</label>
                 <div className="flex flex-wrap gap-2">
                   {subjects.map(s => (
                     <button 
                       key={s.value} 
                       onClick={() => setSubject(s.value)} 
-                      className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${subject === s.value ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                      className={`px-3 py-2 rounded-lg text-xs font-black transition-all border-2 ${subject === s.value ? 'bg-indigo-600 border-indigo-600 text-white shadow-md scale-105' : 'bg-slate-50 border-slate-100 text-slate-900 hover:border-slate-300'}`}
                     >
                       {s.label}
                     </button>
                   ))}
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-black text-slate-800 mb-3 uppercase tracking-widest flex items-center gap-2">
-                    <span className="bg-blue-600 w-2 h-2 rounded-full"></span> 年級
-                  </label>
-                  <select 
-                    className="w-full p-3 border-2 border-slate-200 rounded-xl font-bold text-slate-700 bg-slate-50 focus:border-blue-500 outline-none"
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                  >
-                    {grades.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-black text-slate-800 mb-3 uppercase tracking-widest flex items-center gap-2">
-                    <span className="bg-blue-600 w-2 h-2 rounded-full"></span> 障礙類別
-                  </label>
-                  <select 
-                    className="w-full p-3 border-2 border-slate-200 rounded-xl font-bold text-slate-700 bg-slate-50 focus:border-blue-500 outline-none"
-                    value={disability}
-                    onChange={(e) => setDisability(e.target.value)}
-                  >
-                    {disabilities.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
+              <div className="space-y-4">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">02. 學生背景</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative">
+                    <select className="w-full pl-3 pr-8 py-2.5 border-2 border-slate-100 rounded-xl text-xs bg-slate-50 font-black text-slate-900 focus:border-indigo-500 focus:ring-0 outline-none appearance-none transition-all cursor-pointer" value={grade} onChange={e => setGrade(e.target.value)}>
+                      {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg></div>
+                  </div>
+                  <div className="relative">
+                    <select className="w-full pl-3 pr-8 py-2.5 border-2 border-slate-100 rounded-xl text-xs bg-slate-50 font-black text-slate-900 focus:border-indigo-500 focus:ring-0 outline-none appearance-none transition-all cursor-pointer" value={disability} onChange={e => setDisability(e.target.value)}>
+                      {disabilities.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg></div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="lg:col-span-4">
-              <label className="block text-sm font-black text-slate-800 mb-3 uppercase tracking-widest flex items-center gap-2">
-                 <span className="bg-blue-600 w-2 h-2 rounded-full"></span> 單元名稱
-              </label>
+            {/* Column 2: Unit */}
+            <div className="p-8 space-y-4 flex flex-col">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">03. 單元名稱 (可貼上多個主題)</label>
               <textarea 
-                className="w-full p-5 border-2 border-slate-200 rounded-2xl focus:border-blue-500 focus:ring-0 text-xl h-48 leading-relaxed shadow-inner" 
+                className="w-full flex-grow p-4 border-2 border-slate-100 rounded-xl text-sm font-black bg-slate-50 text-slate-900 placeholder-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50/50 outline-none resize-none min-h-[160px] transition-all" 
                 value={unit} 
-                onChange={(e) => setUnit(e.target.value)} 
-                placeholder="例如：認識錢幣、情緒控制、社交技巧..." 
+                onChange={e => setUnit(e.target.value)} 
+                placeholder="例如：認識10000以內的數、四位數加減、面積、乘法..." 
               />
             </div>
-            <div className="lg:col-span-4">
-              <label className="block text-sm font-black text-slate-800 mb-3 uppercase tracking-widest flex items-center gap-2">
-                 <span className="bg-blue-600 w-2 h-2 rounded-full"></span> 學生個別化描述
-              </label>
+
+            {/* Column 3: Level */}
+            <div className="p-8 space-y-4 flex flex-col">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">04. 學生起點能力描述</label>
               <textarea 
-                className="w-full p-5 border-2 border-slate-200 rounded-2xl focus:border-blue-500 focus:ring-0 text-xl h-48 leading-relaxed shadow-inner" 
+                className="w-full flex-grow p-4 border-2 border-slate-100 rounded-xl text-sm font-medium bg-slate-50 text-slate-900 placeholder-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50/50 outline-none resize-none min-h-[160px] transition-all" 
                 value={level} 
-                onChange={(e) => setLevel(e.target.value)} 
-                placeholder="描述學生目前的起點行為..." 
+                onChange={e => setLevel(e.target.value)} 
+                placeholder="描述學生目前的先備知識、優弱勢現況..." 
               />
             </div>
           </div>
-
-          {error && <div className="mt-6 p-4 bg-red-50 text-red-600 rounded-xl font-bold">{error}</div>}
-
-          <button onClick={handleGenerate} disabled={isGenerating} className={`mt-10 w-full py-6 rounded-2xl font-black text-2xl shadow-xl transition-all ${isGenerating ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-blue-800 active:scale-[0.99]'}`}>
-            {isGenerating ? 'AI 分析中...' : '✨ 生成教育目標'}
-          </button>
+          
+          <div className="p-8 pt-0">
+            <button 
+              onClick={handleGenerate} 
+              disabled={isGenerating} 
+              className={`w-full py-5 rounded-2xl font-black text-lg transition-all shadow-xl flex items-center justify-center gap-3 ${isGenerating ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-[0.99]'}`}
+            >
+              {isGenerating ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <span>正在拆解並生成目標...</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl">🚀</span>
+                  <span>生成專業教育目標報表</span>
+                </>
+              )}
+            </button>
+          </div>
         </section>
 
-        {/* Action Toolbar */}
-        <div className="flex flex-col sm:flex-row justify-between items-end mb-8 gap-4 no-print px-2">
-           <div>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">教學目標預覽</h2>
-              <p className="text-slate-500 font-bold mt-2">提示：點擊內容即可直接編輯</p>
-           </div>
-           <div className="flex flex-wrap gap-3">
-              <button onClick={handleCopyForGoogleDocs} className="px-5 py-3 bg-blue-50 border-2 border-blue-600 text-blue-700 font-black rounded-xl hover:bg-blue-100 transition-colors shadow-sm flex items-center gap-2">
-                複製至 Google 文件
-              </button>
-              <button onClick={handleDownloadCSV} className="px-5 py-3 bg-white border-2 border-emerald-600 text-emerald-700 font-black rounded-xl hover:bg-emerald-50 transition-colors shadow-sm flex items-center gap-2">
-                匯出 CSV
-              </button>
-           </div>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between no-print">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.3em] flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
+              IEP 目標紀錄表 (預覽)
+            </h2>
+          </div>
+          <IEPTable 
+            subject={subject}
+            parentGoals={parentGoals}
+            onUpdateSubGoal={updateSubGoal}
+            onDeleteParent={(id) => setParentGoals(prev => prev.filter(p => p.id !== id))}
+            onAddManualParent={() => {
+               const newParent: IEPParentGoal = {
+                  id: Math.random().toString(36).substr(2, 9),
+                  title: '請輸入新的學年目標',
+                  subGoals: [{ id: Math.random().toString(36).substr(2, 9), code: '1-1', content: '內容與標準...', strategy: '', records: [{ date: '', accuracy: '' }, { date: '', accuracy: '' }] }]
+               };
+               setParentGoals(prev => [...prev, newParent]);
+            }}
+          />
         </div>
-
-        <IEPTable 
-          subject={subject}
-          parentGoals={parentGoals}
-          onUpdateSubGoal={updateSubGoal}
-          onDeleteParent={(id) => setParentGoals(prev => prev.filter(p => p.id !== id))}
-          onAddManualParent={() => {
-             const newParent: IEPParentGoal = {
-                id: Math.random().toString(36).substr(2, 9),
-                title: '手動輸入學年目標',
-                subGoals: [{ id: Math.random().toString(36).substr(2, 9), code: '1-1', content: '內容與標準...', strategy: '', records: [{ date: '', accuracy: '' }, { date: '', accuracy: '' }] }]
-             };
-             setParentGoals(prev => [...prev, newParent]);
-          }}
-        />
       </main>
     </div>
   );
