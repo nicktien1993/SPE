@@ -1,8 +1,8 @@
 
 import React, { useState, useCallback } from 'react';
-import { Subject, IEPParentGoal } from './types';
-import { generateIEPGoals } from './services/geminiService';
-import IEPTable from './components/IEPTable';
+import { Subject, IEPParentGoal } from './types.ts';
+import { generateIEPGoals } from './services/geminiService.ts';
+import IEPTable from './components/IEPTable.tsx';
 
 const App: React.FC = () => {
   const [subject, setSubject] = useState<Subject>(Subject.CHINESE);
@@ -150,7 +150,7 @@ const App: React.FC = () => {
       await navigator.clipboard.write(data);
       alert('【報表格式已複製】\n請至 Google 文件按 Ctrl+V 貼上，標頭結構將完美呈現。');
     } catch (err) {
-      alert('複製失敗，請使用「列印 / PDF」功能。');
+      alert('複製失敗，請手動選擇表格內容進行複製。');
     }
   };
 
@@ -180,8 +180,8 @@ const App: React.FC = () => {
                 </svg>
              </div>
              <div>
-                <h1 className="text-3xl font-black tracking-tight">IEP 目標管理助手 <span className="text-blue-400 text-xl font-medium ml-2">v4.6</span></h1>
-                <p className="text-slate-400 text-base font-medium mt-1">支援跨領域與多種障礙類別</p>
+                <h1 className="text-3xl font-black tracking-tight">IEP 目標管理助手 <span className="text-blue-400 text-xl font-medium ml-2">v4.7</span></h1>
+                <p className="text-slate-400 text-base font-medium mt-1">專為特教教學設計的 AI 工具</p>
              </div>
           </div>
         </div>
@@ -191,7 +191,6 @@ const App: React.FC = () => {
         {/* Input Card */}
         <section className="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 mb-12 no-print">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* 領域與年級與障礙類別 */}
             <div className="lg:col-span-4 space-y-6">
               <div>
                 <label className="block text-sm font-black text-slate-800 mb-3 uppercase tracking-widest flex items-center gap-2">
@@ -246,7 +245,7 @@ const App: React.FC = () => {
                 className="w-full p-5 border-2 border-slate-200 rounded-2xl focus:border-blue-500 focus:ring-0 text-xl h-48 leading-relaxed shadow-inner" 
                 value={unit} 
                 onChange={(e) => setUnit(e.target.value)} 
-                placeholder="請輸入教學單元，例如：生活中常用的社交禮儀、認識錢幣與購物、情緒控制策略等..." 
+                placeholder="例如：認識錢幣、情緒控制、社交技巧..." 
               />
             </div>
             <div className="lg:col-span-4">
@@ -257,7 +256,7 @@ const App: React.FC = () => {
                 className="w-full p-5 border-2 border-slate-200 rounded-2xl focus:border-blue-500 focus:ring-0 text-xl h-48 leading-relaxed shadow-inner" 
                 value={level} 
                 onChange={(e) => setLevel(e.target.value)} 
-                placeholder="請描述學生的起點行為與限制，AI 會根據此資訊調整指標難度與策略..." 
+                placeholder="描述學生目前的起點行為..." 
               />
             </div>
           </div>
@@ -265,7 +264,7 @@ const App: React.FC = () => {
           {error && <div className="mt-6 p-4 bg-red-50 text-red-600 rounded-xl font-bold">{error}</div>}
 
           <button onClick={handleGenerate} disabled={isGenerating} className={`mt-10 w-full py-6 rounded-2xl font-black text-2xl shadow-xl transition-all ${isGenerating ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-blue-800 active:scale-[0.99]'}`}>
-            {isGenerating ? 'AI 專家正在分析領綱並產出指標...' : '✨ 生成標準教育目標'}
+            {isGenerating ? 'AI 分析中...' : '✨ 生成教育目標'}
           </button>
         </section>
 
@@ -273,11 +272,10 @@ const App: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-between items-end mb-8 gap-4 no-print px-2">
            <div>
               <h2 className="text-3xl font-black text-slate-800 tracking-tight">教學目標預覽</h2>
-              <p className="text-slate-500 font-bold mt-2">提示：您可以點擊表格內容直接編輯，或刪除不適用的指標。</p>
+              <p className="text-slate-500 font-bold mt-2">提示：點擊內容即可直接編輯</p>
            </div>
            <div className="flex flex-wrap gap-3">
               <button onClick={handleCopyForGoogleDocs} className="px-5 py-3 bg-blue-50 border-2 border-blue-600 text-blue-700 font-black rounded-xl hover:bg-blue-100 transition-colors shadow-sm flex items-center gap-2">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2zM14 8V3.5L18.5 8H14z"/></svg>
                 複製至 Google 文件
               </button>
               <button onClick={handleDownloadCSV} className="px-5 py-3 bg-white border-2 border-emerald-600 text-emerald-700 font-black rounded-xl hover:bg-emerald-50 transition-colors shadow-sm flex items-center gap-2">
@@ -300,10 +298,6 @@ const App: React.FC = () => {
              setParentGoals(prev => [...prev, newParent]);
           }}
         />
-
-        <footer className="mt-20 text-center text-slate-400 text-xs no-print">
-          <p>© 2024 IEP Professional Assistant - 專為特教行政減壓設計</p>
-        </footer>
       </main>
     </div>
   );
