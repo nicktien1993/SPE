@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { IEPParentGoal, Subject } from '../types';
 
@@ -28,10 +29,11 @@ const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGo
           <tr className="border-b-2 border-black">
             <th rowSpan={4} className="border-r-2 border-black px-2 py-4 text-center w-16">領域</th>
             <th rowSpan={4} className="border-r-2 border-black px-2 py-4 text-center w-48">學年目標</th>
-            <th colSpan={4} className="px-4 py-3 text-center border-b-2 border-black">學期教育目標</th>
+            <th colSpan={5} className="px-4 py-3 text-center border-b-2 border-black">學期教育目標</th>
           </tr>
           <tr className="border-b-2 border-black">
-            <th rowSpan={3} className="border-r-2 border-black px-6 py-4 text-center min-w-[400px]">目標內容</th>
+            <th rowSpan={3} className="border-r-2 border-black px-6 py-4 text-center min-w-[350px]">目標內容與標準</th>
+            <th rowSpan={3} className="border-r-2 border-black px-2 py-4 text-center w-24 bg-slate-50">目標值</th>
             <th colSpan={3} className="px-4 py-2 text-center border-b-2 border-black">評量結果</th>
           </tr>
           <tr className="border-b-2 border-black text-center">
@@ -46,7 +48,7 @@ const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGo
         <tbody>
           {parentGoals.length === 0 ? (
             <tr>
-              <td colSpan={6} className="py-32 text-center text-slate-500 font-bold italic">
+              <td colSpan={7} className="py-32 text-center text-slate-500 font-bold italic">
                 尚未生成內容，請填寫上方資訊並點擊生成。
               </td>
             </tr>
@@ -67,11 +69,6 @@ const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGo
                         rows={6}
                         onChange={(e) => onUpdateSubGoal(parent.id, '', 'parentTitle', e.target.value)}
                       />
-                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-print">
-                         <button onClick={() => copyToClipboard(parent.title)} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-lg text-slate-600 hover:text-indigo-600 transition-all">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-                         </button>
-                      </div>
                     </td>
                   )}
                   <td className="border-r-2 border-black px-6 py-6 relative">
@@ -80,16 +77,27 @@ const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGo
                          <div className="text-blue-900 font-black text-base">
                             <input className="border-none p-0 focus:ring-0 bg-transparent w-12" value={sub.code} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'code', e.target.value)} />
                          </div>
-                         <button onClick={() => copyToClipboard(sub.content)} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-indigo-600 no-print">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
-                         </button>
                       </div>
                       <textarea className="w-full border-none focus:ring-0 text-sm p-0 resize-none bg-transparent leading-relaxed font-bold text-slate-900" value={sub.content} rows={3} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'content', e.target.value)} />
                       {sub.strategy && (
-                        <div className="mt-1 p-2 bg-blue-50/50 rounded-sm text-[11px] text-blue-900 italic border-l-4 border-blue-400 flex justify-between items-start">
+                        <div className="mt-1 p-2 bg-blue-50/50 rounded-sm text-[11px] text-blue-900 italic border-l-4 border-blue-400">
                           <textarea className="w-full border-none focus:ring-0 p-0 bg-transparent resize-none leading-relaxed font-medium" value={sub.strategy} rows={2} onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'strategy', e.target.value)} />
                         </div>
                       )}
+                    </div>
+                  </td>
+                  <td className="border-r-2 border-black px-2 py-6 text-center w-24 bg-slate-50/50">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[9px] font-black text-slate-400 mb-1 uppercase tracking-tighter">目標值</span>
+                      <div className="flex items-end">
+                        <input 
+                          type="number"
+                          className="w-10 text-center font-black text-indigo-600 border-b-2 border-indigo-200 focus:border-indigo-500 focus:ring-0 bg-transparent p-0 text-lg"
+                          value={sub.targetAccuracy}
+                          onChange={(e) => onUpdateSubGoal(parent.id, sub.id, 'targetAccuracy', parseInt(e.target.value) || 0)}
+                        />
+                        <span className="text-xs font-bold text-indigo-400 mb-1 ml-0.5">%</span>
+                      </div>
                     </div>
                   </td>
                   {[0, 1].map((idx) => (
@@ -107,9 +115,9 @@ const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGo
                     {(() => {
                       const lastAcc = sub.records.filter(r => r.accuracy !== "").pop()?.accuracy;
                       const val = parseInt(lastAcc as string);
-                      const isPass = !isNaN(val) && val >= 80;
+                      const isPass = !isNaN(val) && val >= (sub.targetAccuracy || 80);
                       return (
-                        <div className="text-red-600 font-black text-xl">
+                        <div className={`font-black text-xl ${isPass ? 'text-green-600' : 'text-red-500'}`}>
                           {lastAcc ? (isPass ? 'OK' : 'X') : '-'}
                         </div>
                       );

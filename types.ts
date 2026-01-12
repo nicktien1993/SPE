@@ -9,6 +9,7 @@ export interface IEPSubGoal {
   code: string; // 例如 1-1, 1-2
   content: string;
   strategy?: string; // 學習策略
+  targetAccuracy: number; // 適性調整的目標達成率
   records: AssessmentRecord[];
 }
 
