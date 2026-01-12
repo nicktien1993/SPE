@@ -8,8 +8,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script>
-        // 解決瀏覽器環境沒有 process 變數導致的崩潰問題
-        window.process = { env: { NODE_ENV: 'production' } };
+        // 1. 模擬環境變數以防止第三方套件報錯
+        window.process = { env: { NODE_ENV: 'production', API_KEY: '' } };
+
+        // 2. 全域錯誤偵測：如果 JS 執行失敗，顯示具體錯誤，避免一片空白
+        window.onerror = function(message, source, lineno, colno, error) {
+            const root = document.getElementById('root');
+            if (root) {
+                root.innerHTML = `
+                    <div style="padding: 24px; color: #b91c1c; background: #fef2f2; border: 2px solid #fecaca; border-radius: 12px; margin: 40px auto; max-width: 600px; font-family: system-ui, sans-serif;">
+                        <h2 style="margin-top:0; font-size: 1.5rem; font-weight: bold;">系統啟動失敗</h2>
+                        <p style="margin: 12px 0;">錯誤訊息：${message}</p>
+                        <hr style="border: 0; border-top: 1px solid #fecaca; margin: 16px 0;">
+                        <p style="font-size: 0.875rem; color: #7f1d1d; line-height: 1.6;">
+                            這通常是因為 GitHub Pages 無法直接解析 .tsx 檔案（JSX 語法）。<br>
+                            如果這是您直接上傳的檔案，請確認您的環境支援自動編譯，或檢查瀏覽器控制台 (F12) 的 Console 標籤頁查看詳細資訊。
+                        </p>
+                    </div>
+                `;
+            }
+            return false;
+        };
     </script>
     <style>
         body {
@@ -48,7 +67,14 @@
 </script>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <!-- JS 啟動前的 Loading 狀態 -->
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; color: #64748b;">
+            <div style="width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px;"></div>
+            <p style="font-weight: 500;">程式載入中，請稍候...</p>
+        </div>
+    </div>
+    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
     <script type="module" src="index.tsx"></script>
 </body>
 </html>
