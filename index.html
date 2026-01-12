@@ -7,74 +7,60 @@
     <title>IEP 目標管理與紀錄助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- 關鍵：引入 Babel 讓瀏覽器看得懂 TSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <script>
-        // 1. 模擬環境變數以防止第三方套件報錯
+        // 模擬環境變數，防止第三方套件報錯
         window.process = { env: { NODE_ENV: 'production', API_KEY: '' } };
 
-        // 2. 全域錯誤偵測：如果 JS 執行失敗，顯示具體錯誤，避免一片空白
+        // 錯誤捕捉與提示
         window.onerror = function(message, source, lineno, colno, error) {
+            console.error("Global Error:", message, error);
             const root = document.getElementById('root');
-            if (root) {
+            if (root && root.innerHTML.includes('載入中')) {
                 root.innerHTML = `
                     <div style="padding: 24px; color: #b91c1c; background: #fef2f2; border: 2px solid #fecaca; border-radius: 12px; margin: 40px auto; max-width: 600px; font-family: system-ui, sans-serif;">
-                        <h2 style="margin-top:0; font-size: 1.5rem; font-weight: bold;">系統啟動失敗</h2>
-                        <p style="margin: 12px 0;">錯誤訊息：${message}</p>
-                        <hr style="border: 0; border-top: 1px solid #fecaca; margin: 16px 0;">
-                        <p style="font-size: 0.875rem; color: #7f1d1d; line-height: 1.6;">
-                            這通常是因為 GitHub Pages 無法直接解析 .tsx 檔案（JSX 語法）。<br>
-                            如果這是您直接上傳的檔案，請確認您的環境支援自動編譯，或檢查瀏覽器控制台 (F12) 的 Console 標籤頁查看詳細資訊。
-                        </p>
+                        <h2 style="margin-top:0; font-size: 1.25rem; font-weight: bold;">系統啟動失敗</h2>
+                        <p style="margin: 12px 0; font-size: 0.9rem;">錯誤訊息：${message}</p>
+                        <p style="font-size: 0.8rem; color: #7f1d1d;">提示：請確認您的 API Key 已正確設定，且瀏覽器支援 ESM 模組。</p>
+                        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; bg-red-600; color: white; border: none; border-radius: 6px; cursor: pointer;">重新整理</button>
                     </div>
                 `;
             }
-            return false;
         };
     </script>
+
     <style>
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f8fafc;
-        }
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-            .print-only {
-                display: block !important;
-            }
-            body {
-                background-color: white;
-            }
-        }
-        .vertical-text {
-            writing-mode: vertical-rl;
-            text-orientation: upright;
-            letter-spacing: 0.3em;
-            margin: 0 auto;
-        }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .vertical-text { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 0.3em; margin: 0 auto; }
+        @media print { .no-print { display: none !important; } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
-<script type="importmap">
+
+    <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "@google/genai": "https://esm.sh/@google/genai@1.3.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
 </head>
 <body>
     <div id="root">
-        <!-- JS 啟動前的 Loading 狀態 -->
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; color: #64748b;">
             <div style="width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px;"></div>
-            <p style="font-weight: 500;">程式載入中，請稍候...</p>
+            <p style="font-weight: 500;">IEP 助手啟動中...</p>
         </div>
     </div>
-    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-    <script type="module" src="index.tsx"></script>
+
+    <!-- 關鍵：使用 type="text/babel" 並指定 presets，同時 data-type="module" 確保 importmap 生效 -->
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="index.tsx"></script>
 </body>
 </html>
