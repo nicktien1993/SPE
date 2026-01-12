@@ -2,28 +2,24 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationParams } from "../types.ts";
 
-const getApiKey = () => {
-  if (typeof process !== 'undefined' && process.env?.API_KEY) return process.env.API_KEY;
-  if ((window as any).process?.env?.API_KEY) return (window as any).process.env.API_KEY;
-  return '';
-};
-
 export const generateIEPGoals = async (params: GenerationParams): Promise<any[]> => {
-  const apiKey = getApiKey();
+  // 優先從環境變數取得 API KEY (Vercel 後台可設定)
+  const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : '';
+  
   if (!apiKey) {
-    throw new Error("API Key 尚未設定。請確認環境變數中已填入 API_KEY。");
+    throw new Error("API Key 缺失。請在環境變數中設定 API_KEY。");
   }
 
   const ai = new GoogleGenAI({ apiKey });
   
-  const prompt = `你是一位資長的特教老師。請根據以下資訊，產出符合「台灣特教領綱」的教學目標。
+  const prompt = `你是一位資深的特教老師。請根據以下資訊，產出符合「台灣特殊教育課程綱領」的教學目標。
 領域：${params.subject}
-障礙：${params.disabilityType}
+學生障礙類別：${params.disabilityType}
 年級：${params.gradeLevel}
-單元：${params.unit}
-程度：${params.studentLevel}
+單元名稱：${params.unit}
+學生起點行為/程度：${params.studentLevel}
 
-要求：產出格式必須為 JSON 陣列，包含 title (學年目標) 與 subGoals (細部指標陣列)。`;
+請產出一個 JSON 陣列，每個物件代表一個學年目標 (title)，其下包含細部指標陣列 (subGoals)，每個指標需有編號 (code)、具體內容與評量標準 (content) 以及建議的學習策略 (strategy)。`;
 
   try {
     const response = await ai.models.generateContent({
@@ -59,6 +55,6 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
     return JSON.parse(response.text || "[]");
   } catch (error) {
     console.error("Gemini API Error:", error);
-    throw new Error("生成失敗，請檢查網路連線或 API Key 是否正確。");
+    throw new Error("AI 生成失敗，請確認網路或 API Key 設定。");
   }
 };
