@@ -1,8 +1,8 @@
 
 import React, { useState, useCallback } from 'react';
-import { Subject, IEPParentGoal } from './types.ts';
-import { generateIEPGoals } from './services/geminiService.ts';
-import IEPTable from './components/IEPTable.tsx';
+import { Subject, IEPParentGoal } from './types';
+import { generateIEPGoals } from './services/geminiService';
+import IEPTable from './components/IEPTable';
 
 const App: React.FC = () => {
   const [subject, setSubject] = useState<Subject>(Subject.CHINESE);

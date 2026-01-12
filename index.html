@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     
-    <!-- 確保 process 變數在瀏覽器中存在 -->
+    <!-- 提供一個基本的 process 墊片，以防萬一 -->
     <script>
         window.process = window.process || { env: {} };
     </script>
@@ -41,7 +41,7 @@
             </div>
         </div>
     </div>
-    <!-- 唯一入口點，由 Vite 處理 -->
+    <!-- 指向進入點 -->
     <script type="module" src="/index.tsx"></script>
 </body>
 </html>

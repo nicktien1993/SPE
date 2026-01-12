@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { GenerationParams } from "../types.ts";
+import { GenerationParams } from "../types";
 
 export const generateIEPGoals = async (params: GenerationParams): Promise<any[]> => {
   // 嚴格遵循規範從 process.env 獲取 API KEY

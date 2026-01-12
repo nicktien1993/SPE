@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { IEPParentGoal, Subject } from '../types.ts';
+import { IEPParentGoal, Subject } from '../types';
 
 interface IEPTableProps {
   subject: Subject;
