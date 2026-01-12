@@ -3,11 +3,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationParams } from "../types";
 
 export const generateIEPGoals = async (params: GenerationParams): Promise<any[]> => {
-  // 從環境變數獲取 API KEY
+  // 嚴格從 process.env 獲取 API KEY
   const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    throw new Error("找不到 API_KEY。請確保環境變數已正確設定。");
+    throw new Error("系統未偵測到 API_KEY。請檢查佈署環境的環境變數設定。");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -53,11 +53,19 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
       },
     });
 
-    const text = response.text;
-    if (!text) throw new Error("AI 回傳內容為空");
-    return JSON.parse(text);
+    // 根據最新 SDK 規範，使用 response.text 屬性獲取字串
+    const jsonStr = response.text;
+    if (!jsonStr) {
+      throw new Error("AI 未回傳任何內容");
+    }
+
+    return JSON.parse(jsonStr);
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    throw new Error(error.message || "AI 生成失敗，請檢查網路連線或 API Key。");
+    // 針對常見的 401 或 403 錯誤提供更友善的提示
+    if (error.message?.includes('401') || error.message?.includes('key')) {
+      throw new Error("API Key 無效或已過期，請更換 Key 後再試。");
+    }
+    throw new Error(error.message || "AI 生成失敗，請檢查網路連線或 API 設定。");
   }
 };

@@ -11,6 +11,16 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; margin: 0; }
         .vertical-text { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 0.3em; margin: 0 auto; }
         @media print { .no-print { display: none !important; } }
+        /* 優化載入中的視覺 */
+        #root:empty::before {
+            content: "系統啟動中...";
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #64748b;
+            font-weight: bold;
+        }
     </style>
 <script type="importmap">
 {
