@@ -23,28 +23,22 @@ const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGo
 
   return (
     <div className="bg-white shadow-2xl shadow-slate-200/50 border border-slate-900 rounded-none overflow-hidden mb-20">
-      <table className="min-w-full border-collapse table-fixed border-2 border-black">
+      <table id="iep-main-table" className="min-w-full border-collapse table-fixed border-2 border-black">
         <thead className="bg-white text-black text-base font-black uppercase">
-          {/* Row 1 */}
           <tr className="border-b-2 border-black">
             <th rowSpan={4} className="border-r-2 border-black px-2 py-4 text-center w-16">領域</th>
             <th rowSpan={4} className="border-r-2 border-black px-2 py-4 text-center w-48">學年目標</th>
             <th colSpan={4} className="px-4 py-3 text-center border-b-2 border-black">學期教育目標</th>
           </tr>
-          {/* Row 2 */}
           <tr className="border-b-2 border-black">
-            {/* 修正：rowSpan 改為 3，這樣就不會有空白列 */}
             <th rowSpan={3} className="border-r-2 border-black px-6 py-4 text-center min-w-[400px]">目標內容</th>
             <th colSpan={3} className="px-4 py-2 text-center border-b-2 border-black">評量結果</th>
           </tr>
-          {/* Row 3 */}
           <tr className="border-b-2 border-black text-center">
             <th colSpan={2} className="border-r-2 border-black px-4 py-2">形成性評量</th>
             <th rowSpan={2} className="px-2 py-2 w-20">通過</th>
           </tr>
-          {/* Row 4 */}
           <tr className="border-b-2 border-black">
-            {/* 目標內容與通過已在上方 rowSpan，這裡只需處理結果日期 */}
             <th className="border-r-2 border-black px-2 py-1 text-center font-bold text-red-500 text-[10px]">結果/日期</th>
             <th className="border-r-2 border-black px-2 py-1 text-center font-bold text-red-500 text-[10px]">結果/日期</th>
           </tr>
@@ -53,7 +47,7 @@ const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGo
           {parentGoals.length === 0 ? (
             <tr>
               <td colSpan={6} className="py-32 text-center text-slate-500 font-bold italic">
-                尚未生成內容，請填寫上方資訊。
+                尚未生成內容，請填寫上方資訊並點擊生成。
               </td>
             </tr>
           ) : parentGoals.map((parent, pIdx) => (
@@ -129,7 +123,7 @@ const IEPTable: React.FC<IEPTableProps> = ({ subject, parentGoals, onUpdateSubGo
       </table>
       <div className="bg-slate-50/50 p-4 no-print flex justify-center border-t-2 border-black">
         <button onClick={onAddManualParent} className="text-xs font-black text-slate-900 hover:text-indigo-600 transition-colors">
-          [ + ] 新增一行手動編輯目標
+          [ + ] 手動新增一行學年目標
         </button>
       </div>
     </div>
