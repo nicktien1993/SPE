@@ -4,4 +4,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    // 將 Node.js 環境變數對應到前端，這能讓 process.env.API_KEY 有值
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+  }
 });
