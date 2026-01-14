@@ -6,10 +6,10 @@ export interface AssessmentRecord {
 
 export interface IEPSubGoal {
   id: string;
-  code: string; // 例如 1-1, 1-2
+  code: string;
   content: string;
-  strategy?: string; // 學習策略
-  targetAccuracy: number; // 適性調整的目標達成率
+  strategy?: string;
+  targetAccuracy: number;
   records: AssessmentRecord[];
 }
 
@@ -25,12 +25,20 @@ export interface GenerationParams {
   studentLevel: string;
   gradeLevel: string;
   disabilityType: string;
+  subtype?: string; 
+  teacherExpectations?: string; // 新增：班導師的期望
 }
 
 export enum Subject {
   CHINESE = '國語',
   MATH = '數學',
   LIFE_MGMT = '生活管理',
+  SOCIAL_SKILLS = '社會技巧',
   LEARNING_STRATEGY = '學習策略',
-  SOCIAL_SKILLS = '社會技巧'
+  VOCATIONAL = '職業教育',
+  COMMUNICATION = '溝通訓練',
+  BRAILLE = '點字',
+  ORIENTATION = '定向行動',
+  MOTOR_TRAINING = '功能性動作訓練',
+  ASSISTIVE_TECH = '輔助科技應用'
 }

@@ -3,32 +3,51 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationParams } from "../types";
 
 export const generateIEPGoals = async (params: GenerationParams): Promise<any[]> => {
-  // Use process.env.API_KEY directly as per guidelines.
-  // A new instance is created right before making the API call to ensure it uses the most up-to-date key.
   const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    throw new Error("系統設定尚未完成，請聯絡管理員。");
+    throw new Error("系統連線尚未設定。");
   }
 
   const ai = new GoogleGenAI({ apiKey });
   
-  const systemInstruction = `你是一位精通「台灣特教適性教學」的資深專家。
-你的任務是為「${params.gradeLevel}」的「${params.disabilityType}」學生產出細步化、可量化的 IEP 目標。
+  let contextualInstruction = '';
+  if (params.disabilityType === '學習障礙' && params.subtype) {
+    contextualInstruction += `特別注意：該學生為「${params.subtype}」類型之學習障礙，目標應針對此特定困難點進行補救教學與策略指導。`;
+  } else if (params.disabilityType === '資賦優異' && params.subtype) {
+    contextualInstruction += `特別注意：該學生為「${params.subtype}」類型之資賦優異，目標應側重於「加深加廣」、「創造力開發」或「領導潛能培育」。`;
+  }
 
-【適性調整核心規則】：
-1. 【結構化內容】：針對「${params.unit}」，產出 1 個學年目標及對應的 5 個學期細步目標。
-2. 【智慧標準判定】：
-   - 涉及安全之技能（如：辨識危險）：標準 100%。
-   - 初階動作或認知（如：仿說）：標準 60%。
-   - 穩定發展之技能（如：認讀數字）：標準 80%。
-3. 【精準描述】：目標內容必須包含具體行為、條件與通過標準。
-4. 【教學策略】：提供 1-2 句實用的特教教學提示（輔助減退或環境調整）。
-5. 【格式】：嚴格遵守 JSON 格式。`;
+  // 整合班導師的期望
+  if (params.teacherExpectations) {
+    contextualInstruction += `\n【班級導師之特別期望】："${params.teacherExpectations}"。請務必在設計目標或教學策略時，將此期望納入核心考量，讓特教教學能有效支援普教課堂。`;
+  }
 
-  const prompt = `單元名稱：${params.unit}
-學生起點能力：${params.studentLevel}
-請產出適性化的特教目標，targetAccuracy 需為 0-100 的數字。`;
+  const systemInstruction = `你是一位精通特殊教育教學設計與整合教育（Inclusion）的資深專家。
+
+【核心任務】：
+根據老師輸入的單元名稱、年級、學生起點能力以及班導師的期待，產出具備「具體、可測量、可達成」特性的 IEP 目標。
+${contextualInstruction}
+
+【目標結構規則】：
+1. **分散式目標**：請將該單元內容拆解為 2 到 4 個具體的「學年目標」(title)。每個學年目標應代表一個核心概念或能力維度。
+2. **層級化目標**：每個學年目標下，應包含 2 到 3 個「學期目標」(subGoals)，由淺入深排列。
+3. **正確率標準**：請回傳 0 到 100 之間的整數（例如 80）。
+
+【內容風格】：
+請使用台灣特殊教育專業術語。
+
+【格式要求】：
+- 返回 JSON 陣列，包含物件 { title, subGoals }。不需要生成編號，編號將由系統自動處理。`;
+
+  const prompt = `領域：${params.subject}
+單元：${params.unit}
+年級：${params.gradeLevel}
+障別：${params.disabilityType} ${params.subtype ? `(${params.subtype})` : ''}
+起點能力：${params.studentLevel}
+班導師期望：${params.teacherExpectations || '無特別說明'}
+
+請產出約 3 個學年目標及其對應的學期目標。`;
 
   try {
     const response = await ai.models.generateContent({
@@ -42,18 +61,17 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
           items: {
             type: Type.OBJECT,
             properties: {
-              title: { type: Type.STRING },
+              title: { type: Type.STRING, description: "學年目標標題" },
               subGoals: {
                 type: Type.ARRAY,
                 items: {
                   type: Type.OBJECT,
                   properties: {
-                    code: { type: Type.STRING },
-                    content: { type: Type.STRING },
-                    strategy: { type: Type.STRING },
-                    targetAccuracy: { type: Type.NUMBER }
+                    content: { type: Type.STRING, description: "學期目標內容" },
+                    strategy: { type: Type.STRING, description: "教學策略或調整" },
+                    targetAccuracy: { type: Type.NUMBER, description: "通過標準百分比" }
                   },
-                  required: ["code", "content", "strategy", "targetAccuracy"]
+                  required: ["content", "strategy", "targetAccuracy"]
                 }
               }
             },
@@ -63,26 +81,19 @@ export const generateIEPGoals = async (params: GenerationParams): Promise<any[]>
       },
     });
 
-    // Access .text property directly (not a method) as per guidelines.
     const jsonStr = response.text?.trim();
     if (!jsonStr) throw new Error("AI 生成內容為空");
-    return JSON.parse(jsonStr);
+    let parsed = JSON.parse(jsonStr);
+    
+    return parsed.map((p: any) => ({
+      ...p,
+      subGoals: (p.subGoals || []).map((s: any) => ({
+        ...s,
+        targetAccuracy: s.targetAccuracy <= 1 ? Math.round(s.targetAccuracy * 100) : s.targetAccuracy
+      }))
+    }));
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    const errorMessage = error.message || "";
-    
-    if (errorMessage.includes("429")) {
-      throw new Error("目前使用人數較多，系統額度暫時用完，請稍後幾分鐘再試。");
-    }
-    
-    // Handle "Requested entity was not found" by prompting for key selection
-    if (errorMessage.includes("Requested entity was not found")) {
-      if (typeof window !== 'undefined' && (window as any).aistudio) {
-        await (window as any).aistudio.openSelectKey();
-      }
-      throw new Error("API 金鑰失效或專案未啟動，已重新開啟設定視窗，請重新選擇金鑰。");
-    }
-    
-    throw new Error("系統生成時發生一點小問題，請再試一次。");
+    console.error("Gemini Error:", error);
+    throw new Error("生成目標時發生錯誤，請稍後再試。");
   }
 };
